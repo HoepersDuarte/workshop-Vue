@@ -6,6 +6,11 @@ const Login = () => import('@/views/Login' /* webpackChunkName: "login" */)
 const Register = () => import('@/views/Register' /* webpackChunkName: "register" */)
 const Chat = () => import('@/views/Chat' /* webpackChunkName: "chat" */)
 
+// Redireciona o usuário para o chat caso o usuário já esteja logado
+const redirectToChat = (to, from, next) => window.firebase.auth().currentUser ? next('/') : next()
+// Redireciona o usuário para o login se o usuário não estiver logado
+const redirectToLogin = (to, from, next) => !window.firebase.auth().currentUser ? next('/login') : next()
+
 Vue.use(Router)
 
 export default new Router({
@@ -15,19 +20,21 @@ export default new Router({
     {
       name: 'login',
       path: '/login',
-      component: Login
+      component: Login,
+      beforeEnter: redirectToChat
     },
     {
       name: 'register',
       path: '/register',
-      component: Register
+      component: Register,
+      beforeEnter: redirectToChat
     },
     {
       name: 'chat',
       path: '/',
-      component: Chat
+      component: Chat,
+      beforeEnter: redirectToLogin
     },
-    // Ao definirmos uma rota com path * significa que tudo que não coincidir com uma das rotas já definidas irá utilizar esta rota. Útil para construção de páginas de erro 404 por exemplo. No nosso caso iremos redirecionar para o chat.
     {
       path: '*',
       redirect: '/'
