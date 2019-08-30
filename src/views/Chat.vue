@@ -4,32 +4,29 @@
     <div class="w-25 sidebar">
       <!-- Current User -->
       <div class="current-user bg-light d-flex align-items-center flex-nowrap p-2">
-        <avatar :name="currentUser.displayName"/> <!-- Utilização do componente -->
-        <div class="ml-2 text-truncate">{{currentUser.displayName}}</div> <!-- Nome do Usuário logado -->
+        <avatar :name="currentUser.displayName"/>
+        <div class="ml-2 text-truncate">{{currentUser.displayName}}</div>
         <button class="btn btn-sm btn-link ml-auto" @click="logout"><i class="material-icons">exit_to_app</i></button>
       </div>
 
-      <!-- Channels List -->
       <div class="channels-list bg-light p-2">
         <add-channel/>
-        <channel v-for="i in 20" :key="`channel-${i}`" :name="`channel-${i}`"/>
-
+        <!-- adicionada prop is-active -->
+        <!-- adicionados listeners activate e archive -->
+        <channel v-for="(channel, index) in channels" :key="`channel-${index}`" :name="channel" :is-active="channel === currentChannel" @activate="setActiveChannel" @archive="archiveChannel" />
       </div>
     </div>
 
-    <!-- Channel Area -->
     <div class="d-flex flex-column w-75">
-      <!-- Channel Header -->
       <div class="channel-header bg-light p-2 d-flex align-items-center">
+        <!-- Adicionado nome do canal ativo -->
+        #{{ currentChannel }}
       </div>
-      <!-- Channel Messages -->
       <div class="channel-messages flex-grow-1 p-2" ref="channelMessages">
-        <loader />
-        <message v-for="message in messages" :message="message" :key="`message-${message.id}`" :current-user="currentUser"/>
-
+        <loader/>
       </div>
-      <!-- Message Form -->
-      <message-form  /> <!-- style="height: 50px;" class="message-form border-top d-flex align-items-center" -->
+      <!-- Adicionada referencia para o componente de formulario de nova mensagem -->
+      <message-form ref="messageForm"/>
     </div>
   </div>
 </template>
@@ -38,53 +35,71 @@
 import AddChannel from '@/components/AddChannel'
 import Channel from '@/components/Channel'
 import Loader from '@/components/Loader'
-import Message from '@/components/Message'
 import MessageForm from '@/components/MessageForm'
 
 export default {
   name: 'Chat',
+  components: {
+    AddChannel,
+    Channel,
+    Loader,
+    MessageForm
+  },
   data () {
     return {
-      messages: []
+      channelsListRef: window.firebase.firestore().collection('channels'),
+      channels: [],
+      channelListener: () => {}
     }
   },
   computed: {
     currentUser () {
       return this.$store.getters.currentUser
+    },
+    currentChannel () {
+      return this.$store.getters.currentChannel
     }
   },
   methods: {
     logout () {
       window.firebase.auth().signOut()
         .then(() => {
+          this.channelListener()
           this.$store.dispatch('setCurrentUser', null)
           this.$router.push('/login')
         })
         .catch(error => {
           console.error(error.message)
         })
-    }
-  },
-  // Lifecycle Hook created... (https://vuejs.org/v2/api/#Options-Lifecycle-Hooks)
-  created () {
-    for (let i = 1; i <= 50; i++) {
-      this.messages.push({
-        id: i,
-        content: `Mensage de teste ${i}`,
-        timestamp: Date.now(),
-        user: {
-          id: 1,
-          name: 'Eduardo Schröder'
-        }
+    },
+    // Método para definir o canal atual na store
+    setActiveChannel (channelName) {
+      this.$store.dispatch('setCurrentChannel', channelName)
+      this.$nextTick(() => {
+        this.$refs.messageForm.$el.querySelector('textarea').focus()
       })
+    },
+    // Método para arquivar o canal no firebase
+    archiveChannel (channelName) {
+      if (this.currentChannel === channelName) {
+        this.setActiveChannel('todos')
+      }
+
+      window.firebase.firestore()
+        .collection('channels')
+        .doc(channelName)
+        .set({ archived: true }, { merge: true })
     }
   },
-  components: {
-    AddChannel,
-    Channel,
-    Loader,
-    Message,
-    MessageForm
+  created () {
+    this.channelListener = this.channelsListRef
+      .where('archived', '==', false)
+      .orderBy('createdAt', 'desc')
+      .onSnapshot((querySnapshot) => {
+        this.channels = querySnapshot.docs.map(doc => doc.id)
+      })
+    // Seta o canal todos ao acessar a aplicação
+    this.setActiveChannel('todos')
   }
 }
 </script>

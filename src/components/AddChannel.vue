@@ -6,12 +6,7 @@
     </div>
     <transition name="fade">
       <div v-if="isAdding" class="d-flex p-1 mb-1 border rounded add-channel-container">
-        #<input
-          maxlength="32"
-          type="text"
-          class="new-channel ml-1"
-          ref="addChannelInput"
-        />
+        #<input maxlength="32" type="text" class="new-channel ml-1" ref="addChannelInput" v-model.trim="name" @keyup.enter="addChannel" @keyup.esc="toggleAddChannel" @keydown.space.prevent />
       </div>
     </transition>
   </div>
@@ -34,6 +29,20 @@ export default {
       this.$nextTick(() => {
         this.$refs.addChannelInput.focus()
       })
+    },
+    addChannel () {
+      if (!this.name || this.name === 'todos') return
+      window.firebase.firestore().collection('channels').doc(this.name)
+        .set({
+          name: this.name,
+          archived: false,
+          createdAt: window.firebase.firestore.FieldValue.serverTimestamp()
+        })
+        .then(() => {
+          this.name = ''
+          this.isAdding = false
+        })
+        .catch(error => console.error(error))
     }
   }
 }
