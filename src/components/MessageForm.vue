@@ -1,11 +1,59 @@
 <template>
   <div class="message-form d-flex align-items-center bg-light">
-    <textarea placeholder="Digite aqui sua mensagem" class="bg-light" ref="textarea"/>
-    <button class="btn btn-sm btn-orange border-left">
+    <!-- Adicionado v-model -->
+    <!-- Adicionado listener usando modificador prevent para evitar que quebre a linha -->
+    <!-- Adicionada referência no textarea para permitir setar o foco novamente no campo -->
+    <textarea placeholder="Digite aqui sua mensagem" class="bg-light" v-model.trim="message" @keydown.enter.prevent="sendMessage" ref="textarea" />
+    <!-- Listener para enviar mensagem -->
+    <button @click="sendMessage" class="btn btn-sm btn-orange border-left">
       <i class="material-icons">message</i>
     </button>
   </div>
 </template>
+
+<script>
+export default {
+  name: 'MessageForm',
+  data () {
+    return {
+      message: ''
+    }
+  },
+  computed: {
+    currentUser () {
+      return this.$store.getters.currentUser
+    },
+    currentChannel () {
+      return this.$store.getters.currentChannel
+    }
+  },
+  methods: {
+    // Método para enviar mensagem
+    sendMessage () {
+      if (!this.message) return
+      window.firebase.firestore()
+        .collection('messages')
+        .doc(this.currentChannel)
+        .collection('messages')
+        .add({
+          content: this.message,
+          timestamp: window.firebase.firestore.FieldValue.serverTimestamp(),
+          user: {
+            name: this.currentUser.displayName,
+            id: this.currentUser.uid
+          }
+        })
+        .then(() => {
+          this.message = ''
+          this.$nextTick(() => {
+            // Seta o foco no campo
+            this.$refs.textarea.focus()
+          })
+        })
+    }
+  }
+}
+</script>
 
 <style lang="scss">
 .message-form {

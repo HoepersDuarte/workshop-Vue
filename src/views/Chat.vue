@@ -23,7 +23,20 @@
         #{{ currentChannel }}
       </div>
       <div class="channel-messages flex-grow-1 p-2" ref="channelMessages">
-        <loader/>
+        <transition name="fade" mode="out-in">
+          <transition-group name="fade" v-if="messages.length">
+            <message
+              v-for="message in messages"
+              :message="message"
+              :key="`message-${message.id}`"
+              :current-user="currentUser"
+            />
+          </transition-group>
+          <div key="no-records" v-else-if="!loadingMessages" class="alert alert-secondary font-italic">Nenhuma mensagem cadastrada até o momento</div>
+          <div key="loading-records" class="text-center" v-else>
+            <loader/>
+          </div>
+        </transition>
       </div>
       <!-- Adicionada referencia para o componente de formulario de nova mensagem -->
       <message-form ref="messageForm"/>
@@ -36,6 +49,7 @@ import AddChannel from '@/components/AddChannel'
 import Channel from '@/components/Channel'
 import Loader from '@/components/Loader'
 import MessageForm from '@/components/MessageForm'
+import Message from '@/components/Message'
 
 export default {
   name: 'Chat',
@@ -43,13 +57,17 @@ export default {
     AddChannel,
     Channel,
     Loader,
-    MessageForm
+    MessageForm,
+    Message
   },
   data () {
     return {
       channelsListRef: window.firebase.firestore().collection('channels'),
       channels: [],
-      channelListener: () => {}
+      channelListener: () => {},
+      loadingMessages: false,
+      messages: [],
+      messageListener: () => {}
     }
   },
   computed: {
@@ -89,6 +107,41 @@ export default {
         .collection('channels')
         .doc(channelName)
         .set({ archived: true }, { merge: true })
+    },
+    loadMessages () {
+      if (!this.currentChannel) return
+      this.loadingMessages = true
+      this.messageListener = window.firebase.firestore()
+        .collection('messages')
+        .doc(this.currentChannel)
+        .collection('messages')
+        .orderBy('timestamp', 'asc')
+        .onSnapshot((querySnapshot) => {
+          this.messages = querySnapshot.docs.map((doc) => {
+            return {
+              id: doc.id,
+              ...doc.data()
+            }
+          })
+          this.loadingMessages = false
+          this.$nextTick(() => {
+            const animationDuration = 300
+            setTimeout(() => {
+              this.$refs.channelMessages.scrollTop = this.$refs.channelMessages.scrollHeight
+            }, animationDuration)
+          })
+        })
+    }
+  },
+  watch: {
+    currentChannel: {
+      handler (currentChannel) {
+        // Encerra conexão com o listener das mensagens do canal anterior
+        this.messageListener()
+        // Carrega as novas mensagens
+        this.loadMessages()
+      },
+      immediate: true
     }
   },
   created () {
