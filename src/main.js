@@ -6,6 +6,7 @@ import 'bootstrap-css-only/css/bootstrap.min.css'
 import Avatar from '@/components/Avatar' // Importação do componente
 import firebase from 'firebase' // Importa o firebase instalado com npm
 import config from './config' // Importa o objeto de configuração
+import moment from 'moment'
 
 Vue.config.productionTip = false
 
@@ -23,4 +24,11 @@ firebase.auth().onAuthStateChanged(user => { // Verifica se o Usuário está log
     store,
     render: h => h(App)
   }).$mount('#app')
+})
+
+moment.locale('pt-br')
+Vue.filter('timeAgo', (date) => {
+  if (date && 'seconds' in date) {
+    return moment.unix(date.seconds).fromNow()
+  }
 })
