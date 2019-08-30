@@ -1,12 +1,12 @@
 <template>
-  <div class="container-fluid h-100 p-0 d-flex">
+  <div class="container-fluid h-100 p-0 d-flex" v-if="currentUser">
     <!-- Sidebar -->
     <div class="w-25 sidebar">
       <!-- Current User -->
       <div class="current-user bg-light d-flex align-items-center flex-nowrap p-2">
         <avatar :name="currentUser.displayName"/> <!-- Utilização do componente -->
         <div class="ml-2 text-truncate">{{currentUser.displayName}}</div> <!-- Nome do Usuário logado -->
-        <button class="btn btn-sm btn-link ml-auto"><i class="material-icons">exit_to_app</i></button> <!-- Botão para sair do chat -->
+        <button class="btn btn-sm btn-link ml-auto" @click="logout"><i class="material-icons">exit_to_app</i></button>
       </div>
 
       <!-- Channels List -->
@@ -45,12 +45,24 @@ export default {
   name: 'Chat',
   data () {
     return {
-    // Usuário logado (apenas temporariamente até realizarmos o login utilizando firebase)
-      currentUser: {
-        id: 1,
-        displayName: 'Eduardo Schröder'
-      },
       messages: []
+    }
+  },
+  computed: {
+    currentUser () {
+      return this.$store.getters.currentUser
+    }
+  },
+  methods: {
+    logout () {
+      window.firebase.auth().signOut()
+        .then(() => {
+          this.$store.dispatch('setCurrentUser', null)
+          this.$router.push('/login')
+        })
+        .catch(error => {
+          console.error(error.message)
+        })
     }
   },
   // Lifecycle Hook created... (https://vuejs.org/v2/api/#Options-Lifecycle-Hooks)
