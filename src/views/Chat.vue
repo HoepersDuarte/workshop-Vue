@@ -29,9 +29,7 @@
 
       </div>
       <!-- Message Form -->
-      <div style="height: 50px;" class="message-form border-top d-flex align-items-center">
-        <message-form />
-      </div>
+      <message-form  /> <!-- style="height: 50px;" class="message-form border-top d-flex align-items-center" -->
     </div>
   </div>
 </template>
@@ -75,7 +73,7 @@ export default {
     Loader,
     Message,
     MessageForm
-  },
+  }
 }
 </script>
 

@@ -5,7 +5,6 @@ import store from './store'
 import 'bootstrap-css-only/css/bootstrap.min.css'
 import Avatar from '@/components/Avatar' // Importação do componente
 
-
 Vue.config.productionTip = false
 
 new Vue({
